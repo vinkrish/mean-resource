@@ -3,30 +3,11 @@ var express = require('express');
 var routes = function(Book) {
     var bookRouter = express.Router();
 
+    var bookController = require('../Controllers/bookController')(Book);
+
     bookRouter.route('/')
-        .post(function(req, res){
-            var book = new Book(req.body);
-            book.save();
-            res.status(201).send(book);
-
-        })
-        .get(function(req, res){
-            //var responseJson = {hello: "This is my api"};
-            //var query = req.query;
-            var query = {};
-
-            if(req.query.genre) {
-                query.genre = req.query.genre;
-            }
-
-            Book.find(query, function(err, books){
-                if(err){
-                    res.status(500).send(err);
-                } else {
-                    res.json(books);
-                }
-            });
-        });
+        .post(bookController.post)
+        .get(bookController.get);
 
     bookRouter.use('/:bookId', function(req,res,next){
         Book.findById(req.params.bookId, function(err,book){
@@ -43,7 +24,13 @@ var routes = function(Book) {
 
     bookRouter.route('/:bookId')
         .get(function(req,res){
-            res.json(req.book);
+            //res.json(req.book);
+
+            var returnBook = req.book.toJSON();
+            returnBook.links = {};
+            var newLink = 'http://' + req.headers.host + '/api/books/?genre=' + returnBook.genre;
+            returnBook.links.FilterByThisGenre = newLink.replace(' ', '%20');
+            res.json(returnBook);
         })
         .put(function(req,res){
             req.book.title = req.body.title;
